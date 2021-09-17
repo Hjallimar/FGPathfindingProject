@@ -7,13 +7,17 @@ UPathNode::UPathNode()
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
-void UPathNode::DrawNode()
+void UPathNode::DrawNode(int i)
 {
-	FPlane Plane = FPlane(0, 0, 1, Position.Z + 1);
 	FLinearColor ColorStatus;
-	ColorStatus = (FLinearColor::LerpUsingHSV(FColor::Green, FColor::Red, PathMultiplier - 1.0f));
+	ColorStatus = (FLinearColor::LerpUsingHSV(FColor::Red, FColor::Blue, (i/25.0f)));
+
+	DrawDebugLine(GetWorld(), Position, Position + FVector::UpVector * 100, ColorStatus.ToFColor(true), false, -1.0f, 0, 2.0f);
+	return;
+
 	if (blocked)
 		ColorStatus = FLinearColor::Red;
+	FPlane Plane = FPlane(0, 0, 1, Position.Z + 1);
 	
 	//DrawPlane
 	DrawDebugSolidPlane(GetWorld(), Plane, Position, FVector2D(NodeSize / 2 - 5, NodeSize / 2 - 5), ColorStatus.ToFColor(true), false, 0.05f, 0);

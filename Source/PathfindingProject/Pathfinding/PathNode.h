@@ -22,7 +22,7 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	float PathMultiplier = 1.0f;
 
-	void DrawNode();
+	void DrawNode(int i);
 
 	UPathNode* NorthWest;
 	UPathNode* North;

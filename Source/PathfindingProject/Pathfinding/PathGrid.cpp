@@ -28,18 +28,19 @@ void APathGrid::BeginPlay()
 
 void APathGrid::GenerateGrid()
 {
-	//FVector Offset = GetActorLocation() - FVector(GridNodeSize * (Rows * 0.5f - 0.5f), GridNodeSize * (Collums * 0.5f - 0.5f), 0);
-	float Collum = GridNodeSize * (Collums * 0.5f - 0.5f) + GetActorLocation().X;
-	float Row =  GridNodeSize * (Rows * 0.5f - 0.5f) + GetActorLocation().Y;
+	//X = Vertical
+	float Row =  GridNodeSize * (Rows * 0.5f - 0.5f) + GetActorLocation().X;
+	//Y = Horizontal
+	float Collum = -GridNodeSize * (Collums * 0.5f - 0.5f) + GetActorLocation().Y;
 
-	for(int i = 0; i < Collums; i++)
+	for(int i = 0; i < Rows; i++)
 	{
-		for (int j = 0; j < Rows; j++)
+		for (int j = 0; j < Collums; j++)
 		{
 			UPathNode* Node = NewObject<UPathNode>();
-			Node->Position = FVector(Row - (GridNodeSize * i), (Collum - GridNodeSize * j), GetActorLocation().Z);
-			Node->VerticalValue = i;
-			Node->HorizontalValue = j;
+			Node->Position = FVector(Row - (GridNodeSize * i), Collum + (GridNodeSize * j), GetActorLocation().Z);
+			Node->HorizontalValue = i;
+			Node->VerticalValue = j;
 			Node->NodeSize = GridNodeSize;
 			int Test;
 
@@ -81,15 +82,15 @@ void APathGrid::SwitchBlocked(int i)
 
 int APathGrid::ConvertPositionToNodeIndex(FVector Position)
 {
-	FVector PosDiff = Position- GetActorLocation() ;
+	FVector PosDiff = Position - GetActorLocation();
 	DrawDebugLine(GetWorld(), Position, Position + FVector::UpVector * 100, FColor::Black, false, -1.0f, 0, 5.0f);
-	//DrawDebugLine(GetWorld(), Position, Position + FVector::UpVector * 100, FColor::Black, false, -1.0f, 0, 5.0f);
-	float Row = (PosDiff.Y / GridNodeSize) + (Rows * 0.5f);
-	float Collum = (PosDiff.X / GridNodeSize) + (Collums * 0.5f);
+
+	float Row = (PosDiff.X / GridNodeSize) - (Rows * 0.5f);
+	float Collum = (PosDiff.Y / GridNodeSize) + (Collums * 0.5f);
 	UE_LOG(LogTemp, Log, TEXT(" Row: %f and Collum: %f"), Row, Collum);
 	int iRow = (int)Row;
 	int iCollum = (int)Collum;
-	int Index = iRow + iCollum;
+	int Index = iRow * Collums + iCollum;
 	UE_LOG(LogTemp, Log, TEXT(" index at (Row: %i and Collum: %i) is %i"), iRow, iCollum, Index);
 	if(Index >= 0 && Index < GridBoard.Num())
 	{
@@ -126,9 +127,11 @@ void APathGrid::DrawGrid()
 	//Rows - Blue
 	DrawDebugLine(GetWorld(), GridBoard[0]->Position, GridBoard[(Collums-1)*Rows]->Position, FColor::Blue, false, -1.0f, 0, 15.0f);
 	
+	int i = 0;
 	for (UPathNode* Node : GridBoard)
 	{
-		//Node->DrawNode();
+		Node->DrawNode(i);
+		i++;
 		//continue;
 		FPlane Plane = FPlane(0, 0, 1, GetActorLocation().Z + 1.0f);
 		FLinearColor ColorStatus = FLinearColor::Green;
@@ -145,9 +148,9 @@ void APathGrid::DrawGrid()
 		
 
 		//DrawPlane
-		DrawDebugSolidPlane(GetWorld(), Plane, Node->Position, FVector2D(GridNodeSize / 2 - 5, GridNodeSize / 2 - 5), ColorStatus.ToFColor(true), false, 0.05f, 0);
+		DrawDebugSolidPlane(GetWorld(), Plane, Node->Position, FVector2D(GridNodeSize / 2 - 5, GridNodeSize / 2 - 5), ColorStatus.ToFColor(true), false, -1.0f, 0);
 		//Draw GridBox
-		DrawDebugBox(GetWorld(), Node->Position, FVector(GridNodeSize * 0.5f - 1, GridNodeSize * 0.5f - 1, 5.0f), FColor::Black, false, 0.05f, 0, 3.0f);
+		DrawDebugBox(GetWorld(), Node->Position, FVector(GridNodeSize * 0.5f - 1, GridNodeSize * 0.5f - 1, 5.0f), FColor::Black, false,-1.0f, 0, 3.0f);
 
 	}
 }
