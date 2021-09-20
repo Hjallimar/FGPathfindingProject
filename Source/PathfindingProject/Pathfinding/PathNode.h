@@ -3,16 +3,13 @@
 #include "Components/SceneComponent.h"
 #include "PathNode.generated.h"
 
+
 UCLASS()
 class UPathNode : public USceneComponent
 {
 	GENERATED_BODY()
 public:
 	UPathNode();
-	UPROPERTY(VisibleAnywhere)
-	int VerticalValue = 0;
-	UPROPERTY(VisibleAnywhere)
-	int HorizontalValue = 0;
 	UPROPERTY(VisibleAnywhere)
 	FVector Position;
 	UPROPERTY(VisibleAnywhere)
@@ -23,14 +20,24 @@ public:
 	float PathMultiplier = 1.0f;
 
 	void DrawNode(int i);
+	void CalculatePath(UPathNode* Parent, UPathNode* Goal, TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList);
 
-	UPathNode* NorthWest;
-	UPathNode* North;
-	UPathNode* NorthEast;
-	UPathNode* East;
-	UPathNode* SouthEast;
-	UPathNode* South;
-	UPathNode* SouthWest;
-	UPathNode* West;
+	UPROPERTY()
+	UPathNode* Up; 
+	UPROPERTY()
+	UPathNode* Left; 
+	UPROPERTY()
+	UPathNode* Down;
+	UPROPERTY()
+	UPathNode* Right; 
+	// X
+	UPROPERTY()
+	UPathNode* UpLeft; 
+	UPROPERTY()
+	UPathNode* UpRight; 
+	UPROPERTY()
+	UPathNode* DownRight; 
+	UPROPERTY()
+	UPathNode* DownLeft;
 private:
 };

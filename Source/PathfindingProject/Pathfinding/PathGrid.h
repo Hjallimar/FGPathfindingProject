@@ -1,9 +1,12 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "PathGridBlocker.h"
+
 #include "PathGrid.generated.h"
 
 class UPathNode;
+class ULineBatchComponent;
 
 UCLASS()
 class APathGrid : public AActor
@@ -22,6 +25,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Grid)
 	float GridNodeSize = 50.0f;
+	float HalfNodeSize = 0.0f;
 
 	UFUNCTION(BlueprintCallable)
 	int ConvertPositionToNodeIndex(FVector Position);
@@ -31,16 +35,37 @@ public:
 	void DrawGrid();
 
 	UFUNCTION(BlueprintCallable)
+	TArray<FVector> CalculatePath(FVector StartPos, FVector EndPos);
+
+
+	UFUNCTION(BlueprintCallable)
 	void SwitchBlocked(int i);
 	UFUNCTION(BlueprintCallable)
 	void UpdateCurrentNode(int i);
+	UFUNCTION(BlueprintCallable)
+	void AddBlocker(UPathGridBlocker* Blocker);
 	UPathNode* CurrentNode;
 
-private:
+	//DebugDrawing
 	UPROPERTY()
-	TArray<UPathNode*> GridBoard;
-	void GenerateGrid();
+	ULineBatchComponent* LineBatch = nullptr;
+	bool CheckWorldlocationInGrid(const FVector& WorldLocation) const;
 
+private:
+	UPROPERTY(Transient)
+	TArray<UPathNode*> GridBoard;
+	TArray<UPathGridBlocker*> Blockers;
+
+	TArray<FVector> CalculatePath(UPathNode* StartNode, UPathNode* EndNode);
+	TArray<FVector> CalculatePath(int StartIndex, int EndIndex);
+
+	void UpdatePathBlocks();
+	void GenerateGrid();
+	bool IsInsideBounderies(FVector position, FVector Center, FVector Bounderies);
+	
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual bool ShouldTickIfViewportsOnly() const override;
+
 };

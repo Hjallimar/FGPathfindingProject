@@ -9,11 +9,11 @@ UPathNode::UPathNode()
 
 void UPathNode::DrawNode(int i)
 {
+	return;
 	FLinearColor ColorStatus;
-	ColorStatus = (FLinearColor::LerpUsingHSV(FColor::Red, FColor::Blue, (i/25.0f)));
+	ColorStatus = (FLinearColor::LerpUsingHSV(FColor::Red, FColor::Blue, ((float)i/25.0f)));
 
 	DrawDebugLine(GetWorld(), Position, Position + FVector::UpVector * 100, ColorStatus.ToFColor(true), false, -1.0f, 0, 2.0f);
-	return;
 
 	if (blocked)
 		ColorStatus = FLinearColor::Red;
