@@ -119,22 +119,23 @@ void APathGrid::GenerateGrid()
 				Test = y + Rows * (x - 1);
 				if(Test >= 0 && Test < GridBoard.Num())
 				{
-					//Assign Up & Down
-					Node->Up = GridBoard[Test];
-					GridBoard[Test]->Down = Node;
+					//Assign Up and Down
+					Node->AddNeighbour(GridBoard[Test]);
+					GridBoard[Test]->AddNeighbour(Node);
 					if (y > 0)
 					{
+
 						//Assign Diagonal
-						Test = y - 1 + Rows * (x - 1);
-						Node->UpLeft = GridBoard[Test];
-						GridBoard[Test]->DownRight = Node;
+						Test = y - 1 + Rows * (x - 1);					
+						Node->AddDiagonalNeighbour(GridBoard[Test]);
+						GridBoard[Test]->AddDiagonalNeighbour(Node);
 					}
 					if (y < GridBoard.Num() - 1)
 					{
 						//Assign Diagonal
 						Test = y + 1 + Rows * (x - 1);
-						Node->UpRight = GridBoard[Test]; 
-						GridBoard[Test]->DownLeft = Node;
+						Node->AddDiagonalNeighbour(GridBoard[Test]);
+						GridBoard[Test]->AddDiagonalNeighbour(Node);
 					}
 				}
 			}
@@ -143,9 +144,8 @@ void APathGrid::GenerateGrid()
 				Test = (y - 1) + (Rows * x);
 				if(Test >= 0 && Test < GridBoard.Num())
 				{
-					//Assign Right & left
-					Node->Left = GridBoard[Test];
-					GridBoard[Test]->Right = Node;
+					Node->AddNeighbour(GridBoard[Test]);
+					GridBoard[Test]->AddNeighbour(Node);
 				}
 			}
 			GridBoard.Add(Node);

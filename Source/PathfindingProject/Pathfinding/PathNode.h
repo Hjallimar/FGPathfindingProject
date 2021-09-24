@@ -36,26 +36,16 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	float PathMultiplier = 1.0f;
 
+	void AddNeighbour(UPathNode* Node);
+	void AddDiagonalNeighbour(UPathNode* Node);
 	void DrawNode(int i);
 	TArray<FVector> CalculatePath(UPathNode* Parent, UPathNode* Goal, float GPath, TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList);
-	UPROPERTY()
-	UPathNode* Up; 
-	UPROPERTY()
-	UPathNode* Left; 
-	UPROPERTY()
-	UPathNode* Down;
-	UPROPERTY()
-	UPathNode* Right; 
-	// X --- Diagonal, adding if I find time
-	UPROPERTY()
-	UPathNode* UpLeft; 
-	UPROPERTY()
-	UPathNode* UpRight; 
-	UPROPERTY()
-	UPathNode* DownRight; 
-	UPROPERTY()
-	UPathNode* DownLeft;
+
 private:
+	UPROPERTY()
+	TArray<UPathNode*> Neighbours;
+	UPROPERTY()
+	TArray<UPathNode*> DiagonalNeighbours;
 	void CheckNodes(FNodeInfo* BestFit, float GPath, UPathNode* CheckNode, UPathNode* Goal);
 	void GatherNeighbours(TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList);
 };

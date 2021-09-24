@@ -7,6 +7,15 @@ UPathNode::UPathNode()
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
+void UPathNode::AddNeighbour(UPathNode* Node)
+{
+	Neighbours.Add(Node);
+}
+void UPathNode::AddDiagonalNeighbour(UPathNode* Node)
+{
+	DiagonalNeighbours.Add(Node);
+}
+
 void UPathNode::DrawNode(int i)
 {
 	return;
@@ -30,24 +39,22 @@ TArray<FVector> UPathNode::CalculatePath(UPathNode* Parent, UPathNode* Goal, flo
 	TArray<FVector> Path;
 	FNodeInfo BestFit = FNodeInfo();
 	Path.Add(Position);
-	GatherNeighbours(OpenList, ClosedList);
 	if(OpenList.Contains(this))
-	{
 		OpenList.Remove(this);
-	}
-	ClosedList.Add(this);
+	if (!ClosedList.Contains(this))
+		ClosedList.Add(this);
 
-	if(Up != nullptr && !ClosedList.Contains(Up) && !Up->blocked)
-		CheckNodes(&BestFit, GPath, Up, Goal);
-	
-	if (Down != nullptr && !ClosedList.Contains(Down) && !Down->blocked)
-		CheckNodes(&BestFit, GPath, Down, Goal);
-	
-	if (Left != nullptr && !ClosedList.Contains(Left) && !Left->blocked)
-		CheckNodes(&BestFit, GPath, Left, Goal);
-	
-	if (Right != nullptr && !ClosedList.Contains(Right) && !Right->blocked)
-		CheckNodes(&BestFit, GPath, Right, Goal);
+	GatherNeighbours(OpenList, ClosedList);
+
+
+
+	for (UPathNode* Node : Neighbours)
+	{
+		if (Node != nullptr && Node != Parent && !ClosedList.Contains(Node) && !Node->blocked)
+		{
+			CheckNodes(&BestFit, GPath, Node, Goal);
+		}
+	}
 
 	if(BestFit.Node != nullptr && BestFit.Node == Goal)
 	{
@@ -87,12 +94,19 @@ void UPathNode::CheckNodes(FNodeInfo* BestFit, float GPath, UPathNode* CheckNode
 
 void UPathNode::GatherNeighbours(TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList)
 {
-	if (!OpenList.Contains(Up) && !ClosedList.Contains(Up))
-		OpenList.Add(Up);
-	if (!OpenList.Contains(Down) && !ClosedList.Contains(Down))
-		OpenList.Add(Down);
-	if (!OpenList.Contains(Left) && !ClosedList.Contains(Left))
-		OpenList.Add(Left);
-	if (!OpenList.Contains(Right) && !ClosedList.Contains(Right))
-		OpenList.Add(Right);
+	for(UPathNode* Node : Neighbours)
+	{
+		if (Node == nullptr)
+		{
+			continue;
+		}
+		if (!ClosedList.Contains(Node) && Node->blocked)
+		{
+			ClosedList.Add(Node);
+		}
+		else if (!ClosedList.Contains(Node) && !OpenList.Contains(Node))
+		{
+			OpenList.Add(Node);
+		}
+	}
 }
