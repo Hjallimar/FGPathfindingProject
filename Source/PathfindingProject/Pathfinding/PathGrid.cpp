@@ -20,6 +20,8 @@ void APathGrid::OnConstruction(const FTransform& Transform)
 
 	if(GridBoard.Num() == 0)
 	{
+		PrevRow = Rows;
+		PrevCol = Collums;
 		AreaWidth = Collums * GridNodeSize;
 		AreaLength = Rows * GridNodeSize;
 		HalfNodeSize = GridNodeSize * 0.5f;
@@ -35,6 +37,8 @@ void APathGrid::BeginPlay()
 	Super::BeginPlay();
 	if(GridBoard.Num()==0)
 	{
+		PrevRow = Rows;
+		PrevCol = Collums;
 		AreaWidth = Collums * GridNodeSize;
 		AreaLength = Rows * GridNodeSize;
 		HalfNodeSize = GridNodeSize * 0.5f;
@@ -54,22 +58,37 @@ bool APathGrid::ShouldTickIfViewportsOnly() const
 void APathGrid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if(GridBoard.Num()  == 0)
+	if(PrevRow != Rows || PrevCol != Collums)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Building the thing in tick"));
+		PrevRow = Rows;
+		PrevCol = Collums;
+		AreaWidth = Collums * GridNodeSize;
+		AreaLength = Rows * GridNodeSize;
+		HalfNodeSize = GridNodeSize * 0.5f;
+		UE_LOG(LogTemp, Log, TEXT("Building the thing in beginPlay"));
+		GenerateGrid();
+		UpdatePathBlocks();
+		DrawGrid();
 	}
 	else
 	{
-		DrawDebugBox(GetWorld(), GetActorLocation(), FVector(AreaLength / 2, AreaWidth / 2, AreaHeight / 2), FColor::Orange, false, -1.0f, 0, 5.0f);
-		TArray<UPathGridBlocker*> BlockersDetected;
-		GetComponents(BlockersDetected);
-		for (UPathGridBlocker* Block : BlockersDetected)
+		if (GridBoard.Num() == 0)
 		{
-			AddBlocker(Block);
+			UE_LOG(LogTemp, Log, TEXT("Building the thing in tick"));
 		}
-		
-		UpdatePathBlocks();
-		DrawGrid();
+		else
+		{
+			DrawDebugBox(GetWorld(), GetActorLocation(), FVector(AreaLength / 2, AreaWidth / 2, AreaHeight / 2), FColor::Orange, false, -1.0f, 0, 5.0f);
+			TArray<UPathGridBlocker*> BlockersDetected;
+			GetComponents(BlockersDetected);
+			for (UPathGridBlocker* Block : BlockersDetected)
+			{
+				AddBlocker(Block);
+			}
+
+			UpdatePathBlocks();
+			DrawGrid();
+		}
 	}
 }
 
@@ -77,6 +96,8 @@ void APathGrid::Tick(float DeltaTime)
 void APathGrid::GenerateGrid()
 {
 	GridBoard.Empty(0);
+	PrevRow = Rows;
+	PrevCol = Collums;
 	if (Rows < 1 || Collums < 1)
 		return;
 	float Position_X = (HalfNodeSize * Rows) + GetActorLocation().X;
@@ -137,12 +158,7 @@ void APathGrid::DrawGrid()
 	{
 		return;
 	}
-	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + FVector::UpVector * 100, FColor::Cyan, false, -1.0f, 0, 5.0f);
-	
-	//Collums - Red
-	//DrawDebugLine(GetWorld(), GridBoard[0]->Position, GridBoard[Rows -1]->Position , FColor::Red, false, -1.0f, 0, 15.0f);
-	//Rows - Blue
-	//DrawDebugLine(GetWorld(), GridBoard[0]->Position, GridBoard[(Collums-1)*Rows]->Position, FColor::Blue, false, -1.0f, 0, 15.0f);
+	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + FVector::UpVector * 100, FColor::Cyan, false, -1, 0, 5.0f);
 	
 	int i = 0;
 	for (UPathNode* Node : GridBoard)
@@ -168,8 +184,8 @@ void APathGrid::DrawGrid()
 		}	
 
 		float size = GridNodeSize * 0.5f;
-		DrawDebugSolidPlane(GetWorld(), Plane, Node->Position, FVector2D(size - 5, size - 5), ColorStatus.ToFColor(true), false, -1.0f, 0);
-		DrawDebugBox(GetWorld(), Node->Position, FVector(size - 1, size - 1, 5.0f), FColor::Black, false,-1.0f, 0, 3.0f);
+		DrawDebugSolidPlane(GetWorld(), Plane, Node->Position, FVector2D(size - 5, size - 5), ColorStatus.ToFColor(true), false, -1, 0);
+		DrawDebugBox(GetWorld(), Node->Position, FVector(size - 1, size - 1, 5.0f), FColor::Black, false, -1, 0, 3.0f);
 	}
 
 	for (UPathGridBlocker* Blocker : Blockers)
@@ -259,8 +275,31 @@ void APathGrid::UpdateCurrentNode(int i)
 //A* path calculation
 TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNode)
 {
-	return TArray<FVector> {};
-	//Do sick Calculation jäh?
+	if(StartNode == EndNode)
+	{
+		TArray<FVector> Path = { StartNode->Position };
+		return Path;
+	}
+
+	FVector Distance = EndNode->Position - StartNode->Position;
+	float FDistance = FMath::Pow(Distance.X, 2.0f) + FMath::Pow(Distance.Y, 2.0f) + FMath::Pow(Distance.Z, 2.0f);
+	TArray<UPathNode*> ClosedList;
+	TArray<UPathNode*> OpenList;
+	TArray<FVector> Path = StartNode->CalculatePath(nullptr, EndNode, 0.0f, OpenList, ClosedList);
+	FLinearColor Color; 
+	float i = 0.0f;
+	DrawDebugLine(GetWorld(), Path[0], Path[0] + FVector::UpVector * 100.0f, FColor::Blue, false, 10.0f, 0, 4.0f);
+
+	for (FVector pos : Path)
+	{
+		Color = FLinearColor::LerpUsingHSV(FLinearColor::Blue, FLinearColor::Red, i / float(Path.Num()));
+		i++;
+		DrawDebugSphere(GetWorld(), pos, HalfNodeSize, 8, Color.ToFColor(true), false, 10.0f, 0, 4.0f);
+	}
+
+	DrawDebugLine(GetWorld(), Path.Last(), Path.Last() + FVector::UpVector * 100.0f, FColor::Red, false, 10.0f, 0, 4.0f);
+
+	return Path;
 }
 TArray<FVector> APathGrid::CalculatePath(FVector StartPos, FVector EndPos)
 {

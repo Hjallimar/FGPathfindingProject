@@ -19,6 +19,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = Grid)
 	int Collums = 5;
 
+
 	int AreaWidth = 500;
 	int AreaLength = 500;
 	int AreaHeight = 500;
@@ -55,6 +56,9 @@ private:
 	UPROPERTY(Transient)
 	TArray<UPathNode*> GridBoard;
 	TArray<UPathGridBlocker*> Blockers;
+	int PrevRow = 0;
+	int PrevCol = 0;
+	float TimeSinceLastRender = 0.0f;
 
 	TArray<FVector> CalculatePath(UPathNode* StartNode, UPathNode* EndNode);
 	TArray<FVector> CalculatePath(int StartIndex, int EndIndex);

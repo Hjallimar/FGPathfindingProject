@@ -3,7 +3,24 @@
 #include "Components/SceneComponent.h"
 #include "PathNode.generated.h"
 
+USTRUCT()
+struct FNodeInfo
+{
+	GENERATED_BODY()
+public:
+	UPathNode* Node = nullptr;
+	float HScore = 0.0f;
+	float GScore = 0.0f;
+	float FScore = 0.0f;
+	FNodeInfo()
+	{
+		Node = nullptr;
+		HScore = 0.0f;
+		GScore = 0.0f;
+		FScore = 0.0f;
+	}
 
+};
 UCLASS()
 class UPathNode : public USceneComponent
 {
@@ -20,8 +37,7 @@ public:
 	float PathMultiplier = 1.0f;
 
 	void DrawNode(int i);
-	void CalculatePath(UPathNode* Parent, UPathNode* Goal, TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList);
-
+	TArray<FVector> CalculatePath(UPathNode* Parent, UPathNode* Goal, float GPath, TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList);
 	UPROPERTY()
 	UPathNode* Up; 
 	UPROPERTY()
@@ -30,7 +46,7 @@ public:
 	UPathNode* Down;
 	UPROPERTY()
 	UPathNode* Right; 
-	// X
+	// X --- Diagonal, adding if I find time
 	UPROPERTY()
 	UPathNode* UpLeft; 
 	UPROPERTY()
@@ -40,4 +56,6 @@ public:
 	UPROPERTY()
 	UPathNode* DownLeft;
 private:
+	void CheckNodes(FNodeInfo* BestFit, float GPath, UPathNode* CheckNode, UPathNode* Goal);
+	void GatherNeighbours(TArray<UPathNode*> OpenList, TArray<UPathNode*> ClosedList);
 };
