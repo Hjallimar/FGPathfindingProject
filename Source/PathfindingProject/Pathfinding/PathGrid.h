@@ -67,6 +67,10 @@ private:
 	void GenerateGrid();
 	bool IsInsideBounderies(FVector position, FVector Center, FVector Bounderies);
 	
+	TArray<int> JustGiveMePath(UPathNode* StartNode, UPathNode* EndNode);
+	float ICry(FVector a, FVector b);
+
+
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;

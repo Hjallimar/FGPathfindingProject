@@ -111,6 +111,7 @@ void APathGrid::GenerateGrid()
 			UPathNode* Node = NewObject<UPathNode>();
 			Node->Position = BasePos + FVector(-GridNodeSize * x, GridNodeSize * y, 0.0f);
 			Node->NodeSize = GridNodeSize;
+			Node->NodeIndex = x * Rows + y;
 			int Test;
 
 			//Assign Neighbors
@@ -273,32 +274,304 @@ void APathGrid::UpdateCurrentNode(int i)
 }
 
 //A* path calculation
+TArray<int> APathGrid::JustGiveMePath(UPathNode* StartNode, UPathNode* EndNode)
+{
+	bool randomshit = false;
+
+	if (randomshit)
+	{
+		//Construct new grid
+		TArray<FGridNode> TempGrid = TArray<FGridNode>{};
+		for (UPathNode* Node : GridBoard)
+		{
+			FGridNode NewNode = FGridNode();
+			NewNode.GScore = 1000000.0f;
+			NewNode.HScore = 1000000.0f;
+			NewNode.bBlocker = Node->blocked;
+			NewNode.Index = Node->NodeIndex;
+			NewNode.Parent = nullptr;
+			for (UPathNode* Neighbour : Node->Neighbours)
+			{
+				NewNode.NeighbourIndex.Add(Neighbour->NodeIndex);
+			}
+			TempGrid.Add(NewNode);
+		}
+		//Construction done
+		FGridNode* CurrNode = &TempGrid[StartNode->NodeIndex];
+		CurrNode->GScore = 0.0f;
+		CurrNode->HScore = ICry(StartNode->Position, EndNode->Position);
+		TArray<FGridNode*> NotTestedNodes;
+		NotTestedNodes.Add(CurrNode);
+
+		while (NotTestedNodes.Num() > 0 && CurrNode != &TempGrid[EndNode->NodeIndex])
+		{
+			NotTestedNodes.Sort();
+			CurrNode = NotTestedNodes[0];
+			CurrNode->bChecked = true;
+			NotTestedNodes.RemoveAt(0);
+			for (int i : CurrNode->NeighbourIndex)
+			{
+				if (!TempGrid[i].bChecked && !TempGrid[i].bBlocker)
+					NotTestedNodes.Add(&TempGrid[i]);
+
+				float PossibleLower = CurrNode->GScore + ICry(GridBoard[CurrNode->Index]->Position, EndNode->Position);
+				if (PossibleLower < TempGrid[i].GScore)
+				{
+					TempGrid[i].Parent = CurrNode;
+					TempGrid[i].GScore = PossibleLower;
+					TempGrid[i].HScore = TempGrid[i].GScore + ICry(GridBoard[i]->Position, EndNode->Position);
+				}
+			}
+		}
+
+		TArray<int> intPathing = {};
+		TArray<FVector> VectPathing = {};
+		int newIndex = EndNode->NodeIndex;
+		while (TempGrid[newIndex].Parent != nullptr)
+		{
+			UE_LOG(LogTemp, Log, TEXT("U have parent"));
+			intPathing.Add(newIndex);
+			VectPathing.Add(GridBoard[newIndex]->Position);
+			newIndex = TempGrid[newIndex].Parent->Index;
+		}
+		if (VectPathing.Num() > 0)
+		{
+			DrawDebugLine(GetWorld(), VectPathing[0], VectPathing[0] + FVector::UpVector * 100.0f, FColor::Blue, false, 10.0f, 0, 4.0f);
+			float i = 0.0f;
+			for (FVector pos : VectPathing)
+			{
+				FLinearColor Color = FLinearColor::LerpUsingHSV(FLinearColor::Blue, FLinearColor::Red, i / float(VectPathing.Num()));
+				i++;
+				DrawDebugSphere(GetWorld(), pos, HalfNodeSize, 8, Color.ToFColor(true), false, 10.0f, 0, 4.0f);
+			}
+			DrawDebugLine(GetWorld(), VectPathing.Last(), VectPathing.Last() + FVector::UpVector * 100.0f, FColor::Red, false, 10.0f, 0, 4.0f);
+		}
+		return intPathing;
+	}
+	else
+	{
+		TArray<FNodeNavigationInfo> ClosedList = {};
+		FNodeNavigationInfo NodeNav = FNodeNavigationInfo();
+		NodeNav.Node = StartNode;
+		FVector Dist = EndNode->Position - StartNode->Position;
+		NodeNav.HScore = (Dist.X / GridNodeSize) + (Dist.Y / GridNodeSize) + (Dist.Z / GridNodeSize);
+		TArray<FNodeNavigationInfo> OpenList = { NodeNav };
+
+		int counter = 1;
+		float StepCost = 10.0f;
+
+		while (OpenList.Num() > 0)
+		{
+			counter++;
+			if (OpenList[0].Node == EndNode)
+			{
+				NodeNav = OpenList[0];
+				UE_LOG(LogTemp, Log, TEXT("End Has been found"));
+				break;
+			}
+			FNodeNavigationInfo Parent = OpenList[0];
+			OpenList.Remove(Parent);
+			ClosedList.Add(Parent);
+
+			for (UPathNode* Neighbour : Parent.Node->Neighbours)
+			{
+				FNodeNavigationInfo NeighbourNav = FNodeNavigationInfo();
+				NeighbourNav.Node = Neighbour;
+				NeighbourNav.Previous = &Parent;
+				if (Neighbour->blocked)
+				{
+					if (OpenList.Contains(NeighbourNav))
+					{
+						OpenList.Remove(NeighbourNav);
+					}
+					if (!ClosedList.Contains(NeighbourNav))
+					{
+						ClosedList.Add(NeighbourNav);
+					}
+				}
+
+				NeighbourNav.GScore = Parent.GScore + (Neighbour->PathMultiplier * StepCost);
+				FVector Heuristic = EndNode->Position - Neighbour->Position;
+				NeighbourNav.HScore = (Heuristic.X / GridNodeSize) + (Heuristic.Y / GridNodeSize) + (Heuristic.Z / GridNodeSize);
+
+				if (!ClosedList.Contains(NeighbourNav))
+				{
+					if (!OpenList.Contains(NeighbourNav))
+					{
+						OpenList.Add(NeighbourNav);
+					}
+					else
+					{
+						int i = 0;
+						for (FNodeNavigationInfo Info : OpenList)
+						{
+							if (Info == NeighbourNav)
+								break;
+
+							i++;
+						}
+
+						if (OpenList[i].GScore > NeighbourNav.GScore)
+						{
+							OpenList.RemoveAt(i);
+							OpenList.Add(NeighbourNav);
+						}
+					}
+				}
+			}
+			OpenList.Sort();
+			if (OpenList.Num() == 0)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Didn't find the correct node, Search Made %i times"), counter);
+			}
+		}
+
+		TArray<int> Index = {};
+
+		UE_LOG(LogTemp, Log, TEXT("Done with search, Node exists: %i, Parent exists: %i, Search Made %i times"), NodeNav.Node, NodeNav.Previous, counter);
+
+		if (OpenList.Num() > 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("List is bigger than 0"));
+
+			NodeNav = OpenList[0];
+		}
+		UE_LOG(LogTemp, Log, TEXT("Just Deside to stop work here - 1"));
+		while (NodeNav.Previous != nullptr)
+		{
+			Index.Add(NodeNav.Node->NodeIndex);
+			NodeNav = *NodeNav.Previous;
+		}
+		TArray<FVector> Path = {};
+		for (int i : Index)
+		{
+			Path.Add(GridBoard[i]->Position);
+		}
+		UE_LOG(LogTemp, Log, TEXT("Just Deside to stop work here - 2"));
+		UE_LOG(LogTemp, Log, TEXT("Path has size %i"), Path.Num());
+
+		if (Path.Num() > 0)
+		{
+			DrawDebugLine(GetWorld(), Path[0], Path[0] + FVector::UpVector * 100.0f, FColor::Blue, false, 10.0f, 0, 4.0f);
+			float i = 0.0f;
+			for (FVector pos : Path)
+			{
+				FLinearColor Color = FLinearColor::LerpUsingHSV(FLinearColor::Blue, FLinearColor::Red, i / float(Path.Num()));
+				i++;
+				DrawDebugSphere(GetWorld(), pos, HalfNodeSize, 8, Color.ToFColor(true), false, 10.0f, 0, 4.0f);
+			}
+			DrawDebugLine(GetWorld(), Path.Last(), Path.Last() + FVector::UpVector * 100.0f, FColor::Red, false, 10.0f, 0, 4.0f);
+		}
+		UE_LOG(LogTemp, Log, TEXT("Just Deside to stop work here - 3"));
+		return Index;
+	}
+}
+float APathGrid::ICry(FVector a, FVector b)
+{
+	return FMath::Square((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+}
+
 TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNode)
 {
-	if(StartNode == EndNode)
+	TArray<int> intPath = JustGiveMePath(StartNode, EndNode);
+	TArray<FVector> Path;
+	return Path;
+	if(StartNode == nullptr || EndNode == nullptr)
 	{
-		TArray<FVector> Path = { StartNode->Position };
+		UE_LOG(LogTemp, Log, TEXT("Start or End is null"))
+		Path = {};
 		return Path;
 	}
+	bool OldCalculation = false;
+	if (!OldCalculation)
+	{
+		UE_LOG(LogTemp, Log, TEXT("USING MARCUS CALCULATION"))
+		FPathInfo PathInfo = FPathInfo(StartNode, EndNode);
+		FNodeNavigationInfo NodeNav = FNodeNavigationInfo();
+		NodeNav.Node = StartNode;
+		PathInfo.OpenList.Add(NodeNav);
+		UE_LOG(LogTemp, Log, TEXT("OpenList has: %i members"), PathInfo.OpenList.Num())
+		FNodeNavigationInfo* FinalNode = StartNode->RecursivePathCalculation(&PathInfo);
+		if(FinalNode != nullptr)
+		{
+			while (FinalNode->Previous != nullptr)
+			{
+				Path.Add(FinalNode->Node->Position);
+				FinalNode = FinalNode->Previous;
+			}
+		}
+	}	
+	else if(OldCalculation)
+	{
+		UE_LOG(LogTemp, Log, TEXT("USING OLD CALCULATION"))
+		TArray<UPathNode*> ClosedList;
+		TArray<UPathNode*> OpenList;
+		if (StartNode == nullptr || EndNode == nullptr)
+			return TArray<FVector> {};
+		UPathNode* CurrentItterNode = StartNode;
+		float GPath = 0.0;
+		FNodeInfo NewParent = FNodeInfo();
+		int SafetyNet = 0;
+		while (CurrentItterNode != EndNode || SafetyNet > 25)
+		{
+			SafetyNet++;
+			FNodeInfo BestFit = FNodeInfo();
+			if (NewParent.ParentNode != nullptr)
+			{
+				CurrentItterNode->Parent = NewParent;
+				BestFit.ParentNode = NewParent.Node;
+			}
+			else
+			{
+				CurrentItterNode->Parent = FNodeInfo();
+				CurrentItterNode->Parent.Node = CurrentItterNode;
+				BestFit.ParentNode = CurrentItterNode;
+			}
 
-	FVector Distance = EndNode->Position - StartNode->Position;
-	float FDistance = FMath::Pow(Distance.X, 2.0f) + FMath::Pow(Distance.Y, 2.0f) + FMath::Pow(Distance.Z, 2.0f);
-	TArray<UPathNode*> ClosedList;
-	TArray<UPathNode*> OpenList;
-	TArray<FVector> Path = StartNode->CalculatePath(nullptr, EndNode, 0.0f, OpenList, ClosedList);
-	FLinearColor Color; 
-	float i = 0.0f;
+			CurrentItterNode->GatherNeighbours(OpenList, ClosedList); //Place neighbours.4
+
+			for (UPathNode* Node : CurrentItterNode->Neighbours)
+			{
+				if (Node != nullptr)
+					continue;
+
+				if (!ClosedList.Contains(Node) && !Node->blocked)
+				{
+					CurrentItterNode->CheckNodes(&BestFit, GPath, Node, EndNode);
+				}
+			}
+			CurrentItterNode = BestFit.Node;
+		}
+
+
+		//if(StartNode == EndNode)
+		//{
+		//	Path = { StartNode->Position };
+		//	return Path;
+		//}
+		//else
+		//{
+		//	FVector Distance = EndNode->Position - StartNode->Position;
+		//	float FDistance = FMath::Pow(Distance.X, 2.0f) + FMath::Pow(Distance.Y, 2.0f) + FMath::Pow(Distance.Z, 2.0f);
+		//	TArray<UPathNode*> ClosedList;
+		//	TArray<UPathNode*> OpenList;
+		//	Path = StartNode->CalculatePath(nullptr, EndNode, 0.0f, OpenList, ClosedList);
+
+		//}
+		Path = CurrentNode->GeneratePath();
+	}
+
 	DrawDebugLine(GetWorld(), Path[0], Path[0] + FVector::UpVector * 100.0f, FColor::Blue, false, 10.0f, 0, 4.0f);
-
+	float i = 0.0f;
 	for (FVector pos : Path)
 	{
-		Color = FLinearColor::LerpUsingHSV(FLinearColor::Blue, FLinearColor::Red, i / float(Path.Num()));
+		FLinearColor Color = FLinearColor::LerpUsingHSV(FLinearColor::Blue, FLinearColor::Red, i / float(Path.Num()));
 		i++;
 		DrawDebugSphere(GetWorld(), pos, HalfNodeSize, 8, Color.ToFColor(true), false, 10.0f, 0, 4.0f);
 	}
-
 	DrawDebugLine(GetWorld(), Path.Last(), Path.Last() + FVector::UpVector * 100.0f, FColor::Red, false, 10.0f, 0, 4.0f);
 
+	UE_LOG(LogTemp, Log, TEXT("Total of %i nodes were counted"), Path.Num());
 	return Path;
 }
 TArray<FVector> APathGrid::CalculatePath(FVector StartPos, FVector EndPos)
