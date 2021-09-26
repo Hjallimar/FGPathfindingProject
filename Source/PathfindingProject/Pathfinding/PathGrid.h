@@ -6,7 +6,7 @@
 #include "PathGrid.generated.h"
 
 class UPathNode;
-class ULineBatchComponent;
+struct FNodeNavigationInfo;
 
 UCLASS()
 class APathGrid : public AActor
@@ -18,11 +18,6 @@ public:
 	int Rows = 5;
 	UPROPERTY(EditAnywhere, Category = Grid)
 	int Collums = 5;
-
-
-	int AreaWidth = 500;
-	int AreaLength = 500;
-	int AreaHeight = 500;
 
 	UPROPERTY(EditAnywhere, Category = Grid)
 	float GridNodeSize = 50.0f;
@@ -38,42 +33,37 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<FVector> CalculatePath(FVector StartPos, FVector EndPos);
 
-
 	UFUNCTION(BlueprintCallable)
 	void SwitchBlocked(int i);
 	UFUNCTION(BlueprintCallable)
 	void UpdateCurrentNode(int i);
-	UFUNCTION(BlueprintCallable)
-	void AddBlocker(UPathGridBlocker* Blocker);
 	UPathNode* CurrentNode;
 
-	//DebugDrawing
-	UPROPERTY()
-	ULineBatchComponent* LineBatch = nullptr;
+	void AddBlocker(UPathGridBlocker* Blocker);
 	bool CheckWorldlocationInGrid(const FVector& WorldLocation) const;
 
 private:
-	UPROPERTY(Transient)
+	UPROPERTY()
 	TArray<UPathNode*> GridBoard;
+	UPROPERTY()
 	TArray<UPathGridBlocker*> Blockers;
 	int PrevRow = 0;
 	int PrevCol = 0;
-	float TimeSinceLastRender = 0.0f;
 
+	void DrawSpherePath(TArray<FVector> Path, FLinearColor StartColor, FLinearColor EndColor);
 	TArray<FVector> CalculatePath(UPathNode* StartNode, UPathNode* EndNode);
 	TArray<FVector> CalculatePath(int StartIndex, int EndIndex);
 
 	void UpdatePathBlocks();
 	void GenerateGrid();
-	bool IsInsideBounderies(FVector position, FVector Center, FVector Bounderies);
 	
-	TArray<int> JustGiveMePath(UPathNode* StartNode, UPathNode* EndNode);
-	float ICry(FVector a, FVector b);
+	bool IsInsideBounderies(FVector position, FVector Center, FVector Bounderies);
 
+	TArray<FVector> BuildFinalPath(FNodeNavigationInfo* Info);
+	TArray<FVector> BuildFinalPathList(FNodeNavigationInfo* Info, TArray<FVector> List);
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual bool ShouldTickIfViewportsOnly() const override;
-
 };
