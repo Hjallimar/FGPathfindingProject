@@ -59,7 +59,6 @@ private:
 	
 	bool IsInsideBounderies(FVector position, FVector Center, FVector Bounderies);
 
-	TArray<FVector> BuildFinalPath(FNodeNavigationInfo* Info);
 	TArray<FVector> BuildFinalPathList(FNodeNavigationInfo* Info, TArray<FVector> List);
 
 	virtual void Tick(float DeltaTime) override;

@@ -278,7 +278,6 @@ TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNod
 	{
 		if (OpenList[0].Node->NodeIndex == EndNode->NodeIndex)
 		{
-			ClosedList.Add(OpenList[0]);
 			break;
 		}
 
@@ -327,8 +326,6 @@ TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNod
 		OpenList.Sort();
 	}
 
-	//BuildFinalPathList(&OpenList[0], Path); 
-
 	TArray<int> Index;
 
 	FNodeNavigationInfo* Info = &OpenList[0];
@@ -365,11 +362,6 @@ TArray<FVector> APathGrid::CalculatePath(int StartIndex, int EndIndex)
 	return CalculatePath(GridBoard[StartIndex], GridBoard[EndIndex]);
 }
 
-TArray<FVector> APathGrid::BuildFinalPath(FNodeNavigationInfo* info)
-{
-	TArray<FVector> List;
-	return BuildFinalPathList(info, List);
-}
 TArray<FVector> APathGrid::BuildFinalPathList(FNodeNavigationInfo* info, TArray<FVector> List)
 {
 	if(info->Node == nullptr)
