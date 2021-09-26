@@ -263,6 +263,12 @@ void APathGrid::UpdateCurrentNode(int i)
 //Building A* Path
 TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNode)
 {
+	TArray<FVector> Path = {};
+	if(StartNode == nullptr || EndNode == nullptr || StartNode->blocked || EndNode->blocked)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Requested Path is not compadable"));
+		return Path;
+	}
 	TArray<FNodeNavigationInfo> ClosedList = {};
 	TArray<FNodeNavigationInfo> OpenList = { FNodeNavigationInfo(StartNode) };
 
@@ -272,6 +278,7 @@ TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNod
 	{
 		if (OpenList[0].Node->NodeIndex == EndNode->NodeIndex)
 		{
+			ClosedList.Add(OpenList[0]);
 			break;
 		}
 
@@ -320,30 +327,24 @@ TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNod
 		OpenList.Sort();
 	}
 
-	TArray<FVector> Path = {};
+	//BuildFinalPathList(&OpenList[0], Path); 
+
+	TArray<int> Index;
+
 	FNodeNavigationInfo* Info = &OpenList[0];
-	bool Recursive = false;
-	if(Recursive)
+
+	while (Info != nullptr || Info->Previous != nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Crash by running recursive"))
-		BuildFinalPathList(&OpenList[0], Path);
-	}
-	else
-	{
-		TArray<int> Index;
-		UE_LOG(LogTemp, Warning, TEXT("Crash by running while"))
-		while (Info->Previous != nullptr)
+		if (Info != nullptr || Info->Node == nullptr)
 		{
-			if (Info->Node == nullptr)
-				break;
-			Index.Add(Info->Node->NodeIndex);
-			Info = Info->Previous;
+			break;
 		}
-		for(int i : Index)
-		{
-			Path.Add(GridBoard[i]->Position);
-		}
+		Index.Add(Info->Node->NodeIndex);
+		Path.Add(Info->Node->Position);
+		Info = Info->Previous;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Path has index: %i"), Path.Num());
 
 	DrawSpherePath(Path);
 	return Path;
@@ -371,8 +372,16 @@ TArray<FVector> APathGrid::BuildFinalPath(FNodeNavigationInfo* info)
 }
 TArray<FVector> APathGrid::BuildFinalPathList(FNodeNavigationInfo* info, TArray<FVector> List)
 {
-	if (info->Previous == nullptr)
+	if(info->Node == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("recursive node was nullptr"))
+			return List;
+	}
+	if(info->Previous == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("recursive Parent was nullptr"))
 		return List;
+	}
 
 	List.Add(info->Node->Position);
 	return BuildFinalPathList(info->Previous, List);
