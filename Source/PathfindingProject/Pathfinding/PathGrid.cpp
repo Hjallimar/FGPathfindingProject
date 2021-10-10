@@ -263,7 +263,6 @@ void APathGrid::UpdateCurrentNode(int i)
 //Building A* Path
 TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNode)
 {
-	TArray<FVector> Path = {};
 	if(StartNode == nullptr || EndNode == nullptr || StartNode->blocked || EndNode->blocked)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Requested Path is not compadable"));
@@ -326,18 +325,18 @@ TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNod
 		OpenList.Sort();
 	}
 
-	TArray<int> Index;
+	//TArray<int> Index;
 
-	FNodeNavigationInfo* Info = &OpenList[0];
-
-	while (Info != nullptr || Info->Previous != nullptr)
+	FNodeNavigationInfo* Info = &OpenList[0];		
+	while (Info->Previous != nullptr )
 	{
-		if (Info != nullptr || Info->Node == nullptr)
+		if (Info->Node != nullptr)
 		{
-			break;
+			Path.Add(Info->Node->Position);
+			if (Info->Node->NodeIndex == StartNode->NodeIndex)
+				break;
 		}
-		Index.Add(Info->Node->NodeIndex);
-		Path.Add(Info->Node->Position);
+
 		Info = Info->Previous;
 	}
 
