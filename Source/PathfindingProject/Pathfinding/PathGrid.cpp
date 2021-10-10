@@ -263,6 +263,7 @@ void APathGrid::UpdateCurrentNode(int i)
 //Building A* Path
 TArray<FVector> APathGrid::CalculatePath(UPathNode* StartNode, UPathNode* EndNode)
 {
+	TArray<FVector> Path;
 	if(StartNode == nullptr || EndNode == nullptr || StartNode->blocked || EndNode->blocked)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Requested Path is not compadable"));
